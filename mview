@@ -1,0 +1,62 @@
+#!/bin/bash
+
+### carregando confs e checagens #########################
+
+source mcore
+source mcorecheck
+
+### gera lista recente ###################################
+
+bash mglist
+
+### imprime bancos pgsql disponiveis para dump ###########
+
+function print_pgsql_databases()
+{
+  	QTBANCOS=$(cat $NMDBLIST_PGSQL|wc -l)
+        QTHOSTS=$(cat $NMDBLIST_PGSQL |cut -d: -f1|sort -u|wc -l)
+
+        echo -e "\nResultado da verificacao nos bancos PGSQL"
+        echo -e "Encontrei $QTBANCOS bancos em $QTHOSTS sgbds\n"
+        echo -n "Deseja visualizar o resultado? Y/N: "
+        read RESULT
+        if [ $RESULT == "Y" ] || [ $RESULT == "y" ];then
+                echo -e "\n--- IP, BANCO, SERVIDOR ---\n"
+                cat $NMDBLIST_PGSQL|sed 's/\:/ /g'|awk '{ print $1,$4,$5 }'
+                echo -e "\n--- FIM -------------------\n"
+        fi
+
+}
+
+### imprime bancos mysql disponiveis para dump ###########
+
+function print_mysql_databases()
+{
+  	QTBANCOS=$(cat $NMDBLIST_MYSQL|wc -l)
+        QTHOSTS=$(cat $NMDBLIST_MYSQL |cut -d: -f1|sort -u|wc -l)
+
+        echo -e "\nResultado da verificacao nos bancos MYSQL"
+        echo -e "Encontrei $QTBANCOS bancos em $QTHOSTS sgbds\n"
+        echo -n "Deseja visualizar o resultado? Y/N: "
+        read RESULT
+        if [ $RESULT == "Y" ] || [ $RESULT == "y" ];then
+                echo -e "\n--- IP, BANCO, SERVIDOR ---\n"
+                cat $NMDBLIST_MYSQL|sed 's/\:/ /g'|awk '{ print $1,$4,$5 }'
+                echo -e "\n--- FIM -------------------\n"
+        fi
+}
+
+function print_databases()
+{
+	# listando mysql
+        if [ $MYDUMPS == "YES" ];then
+                print_mysql_databases
+        fi
+
+        # listando pgsql
+        if [ $PGDUMPS == "YES" ];then
+                print_pgsql_databases
+        fi
+}
+
+print_databases

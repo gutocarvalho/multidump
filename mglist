@@ -1,0 +1,83 @@
+#!/bin/bash
+
+### carregando variaveis/constantes/checagens ################################
+
+source mcore
+source mcorecheck
+
+### funcao de backup ##########################################################
+
+function listabancos_pgsql()
+        {
+
+    	if [ -e $NMDBLIST_PGSQL ];then rm $NMDBLIST_PGSQL;fi
+
+	# lendo informacao de sgbds
+        for DB in `cat $SGDBLIST_PGSQL |grep -v ^#|grep -v ^$`;do
+                HOST=`echo $DB | cut -d: -f1`
+                USER=`echo $DB | cut -d: -f2`
+                PASS=`echo $DB | cut -d: -f3`
+                NAME=`echo $DB | cut -d: -f4`
+
+                # exportando senha do postgres
+                export PGPASSWORD=$PASS
+
+                # listando bancos que consigo acessar
+                for DBBKP in $($PSQL --username=$USER -h $HOST -l -t -A 2>> $ERROS | cut -d\| -f1 | grep -v = |egrep -v $BEP); do
+                        echo $HOST:$USER:$PASS:$DBBKP:$NAME >> $NMDBLIST_PGSQL
+                done
+	
+        done
+
+}
+
+function listabancos_mysql()
+        {
+    	
+	if [ -e $NMDBLIST_MYSQL ];then rm $NMDBLIST_MYSQL;fi
+
+	# lendo informacao de sgbds
+        for DB in `cat $SGDBLIST_MYSQL |grep -v ^#|grep -v ^$`;do
+                HOST=`echo $DB | cut -d: -f1`
+                USER=`echo $DB | cut -d: -f2`
+                PASS=`echo $DB | cut -d: -f3`
+                NAME=`echo $DB | cut -d: -f4`
+
+                # listando bancos que consigo acessar
+		for DBBKP in $($MYSQL -h$HOST -u$USER -p$PASS -B -s -e 'show databases;' 2>> $ERROS| egrep -v $BEM); do
+                        echo $HOST:$USER:$PASS:$DBBKP:$NAME >> $NMDBLIST_MYSQL
+                done
+     	done
+
+}
+
+function listabancos()
+{
+	# limpando arquivo
+        if [ -e $ERROS ];then rm $ERROS;fi
+
+	# listando arquivos mysql
+	if [ $MYDUMPS == "YES" ];then
+		listabancos_mysql
+	fi
+
+	# listando arquivos pgsql
+	if [ $PGDUMPS == "YES" ];then
+		listabancos_pgsql
+	fi
+	
+	# verificando se houve erros
+
+#	if [ ! -s $ERROS ];then
+#		# apagando arquivo vazio
+#		rm $ERROS
+#	else
+#		echo "houve algum erro durante a listagem de bancos"
+#		echo "digite less $ERROS para visualizar o conteudo do arquivo"
+#		exit 1
+#	fi	
+
+}
+
+
+listabancos

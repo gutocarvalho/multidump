@@ -1,0 +1,74 @@
+#!/bin/bash
+
+#
+# SCRIPT para fazer dump dos bancos de dados do PGSQL e MYSQL
+# Ele se conecta no sgbd, lista os bancos e faz o dump daqueles
+# bancos que ele tem autorizacao para select
+#
+
+#
+# autor: guto@gutocarvalho.net
+# data da criacao: 2011-03-22
+
+# pre-requisitos de pacotes:
+
+#
+# psql
+# pg_dump
+
+# mysql
+# mysqldump
+
+# bzip2
+# mail
+#
+
+#
+# como usar?
+# configure as variaveis/constantes internas e execute-o
+#
+# multidump mysql
+# multidump pgsql
+# multidump all
+# 
+#### variaveis/constantes ###########################################################
+
+BDIR="/backupservidores/bancos/multidump"	# diretorio base
+
+SGDBLIST_PGSQL="$BDIR/listas/sgbds_pgsql.txt"	# lista de bancos para dump
+SGDBLIST_MYSQL="$BDIR/listas/sgbds_mysql.txt"	# lista de bancos para dump
+
+NMDBLIST_PGSQL="$BDIR/tmp/listabancos_pgsql.txt" # lista de bancos para dump
+NMDBLIST_MYSQL="$BDIR/tmp/listabancos_mysql.txt" # lista de bancos para dump
+
+MINFO="MULTIDUMP"				# TAG para logs
+
+BK="$BDIR/dumps"   				# diretorio de destino dos dumps
+BL="$BDIR/logs"            			# diretorio de destino dos logs
+
+ERROS="$BL/erros.txt"				# lista de bancos para dump
+
+NB="14"          				# numero maximo de backups de um mesmo banco no disco
+
+BEP="postgres|template1|template0|\?"    	# bancos que nao vao entrar no backup
+BEM="mysql|test|information_schema"		# bancos que nao vao entrar no backup
+
+NW=$(date +%Y%m%d.%H%M%S)               	# variavel de hora para os logs da rotina
+LN="$BL/multidump.dumps.$NW.log"            	# formato do arquivo de log
+LR="$BL/multidump.dumps.errors.$NW.log"		# formato do arquivo de log
+
+PGDUMPS="YES"					# ativa/desativa dumps pgsql
+PG_DUMP=$(which pg_dump)         		# caminho para comando pgsqldump
+PSQL=$(which psql)               		# caminho para o comando pgdump
+
+MYDUMPS="YES"					# ativar/desativa dumps mysql
+MY_DUMP=$(which mysqldump)                      # caminho para comando mysqldump
+MYSQL=$(which mysql)				# mysql
+
+MAILX=$(which mail)                   		# caminho para comando mail
+
+SEND_REPORT_MAIL="YES"           		# envia e-mail com relatorio de dumps YES/NO
+REPORT_MAIL="jose.accarvalho@ebc.com.br"        # email para receber relatorio de dumps
+ 
+SEND_ERROR_MAIL="YES"                           # envia email com relatorio de erros nos dumps YES/NO
+ERROR_MAIL="jose.accarvalho@ebc.com.br"	        # email para receber relatorios de erro

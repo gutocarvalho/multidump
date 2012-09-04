@@ -1,0 +1,79 @@
+#!/bin/bash
+
+### carregando configuracoes ###############################################
+
+source mcore
+
+### verificando se voce é o usuario root ###################################
+
+if [ $(id -u) != "0" ];then
+        echo -e "\nErro: este script precisa ser executado com usuario root..."
+        echo -e "Ajuda: torne-se root, use o comando (su -) ou (sudo -i).\n"
+        exit 1
+fi
+
+### verifica se as ferramentas do mysql estao instalados ####################################
+
+if [ $MYDUMPS == "YES" ] && [ ! -x $MY_DUMP ];then
+        echo -e "\nErro: Este script não conseguiu encontrar o comando MYSQLDUMP"
+        echo -e "Ajuda: Corrija o caminho na variavel MY_DUMP\n"
+        exit 1
+fi
+
+if [ $MYDUMPS == "YES" ] &&  [ ! -x $MYSQL ];then
+        echo -e "\nErro: Este script não conseguiu encontrar o comando psql"
+        echo -e "Ajuda: Corrija o caminho na variavel MYSQL\n"
+        exit 1
+fi
+
+### verifica se as ferramentas do pgsql estao instalados ####################################
+
+if [ $PGDUMPS == "YES" ] &&  [ ! -x $PG_DUMP ];then
+        echo -e "\nErro: Este script não conseguiu encontrar o comando pg_dump"
+        echo -e "Ajuda: Corrija o caminho na variavel PG_DUMP\n"
+        exit 1
+fi
+
+if [ $PGDUMPS == "YES" ] && [ ! -x $PSQL ];then
+        echo -e "\nErro: Este script não conseguiu encontrar o comando psql"
+        echo -e "Ajuda: Corrija o caminho na variavel PGSQL\n"
+        exit 1
+fi
+
+### verifica se o mailx esta instalado ####################################
+
+if [ ! -x $_mail ];then
+        echo "Erro: Este script não conseguiu encontrar o comando mail"
+        echo "Ajuda: Corrija o caminho na variavel _mail"
+        exit 1
+fi
+
+### verificando se existe o diretorio para armazenar os logs #############################
+        
+        if [ ! -d $BL ]; then
+                echo -e "\nErro: o diretorio de logs nao existe!"
+                echo -e "Ajuda: ajuste o conteudo da variavel BL\n"
+                exit 1
+        fi
+
+### verificando se existe o diretorio para armazenar os dumps #############################
+
+        if [ ! -d $BK ]; then
+                echo -e "\nErro: o diretorio de destino nao existe!"
+                echo -e "Ajuda: ajuste o conteudo da variavel BK\n"
+                exit 1
+        fi
+
+### verificando se existe o arquivo com a lista de sgbds #############################
+
+	if [ $PGDUMPS == "YES" ] && [ ! -f $SGDB_PGSQL ]; then
+                echo -e "\nErro: o arquivo com a lista de sgbds pgsql nao existe!"
+                echo -e "Ajuda: ajuste o conteudo da variavel NMDBLIST_PGSQL\n"
+                exit 1
+        fi
+	
+	if [ $MYDUMPS == "YES" ] && [ ! -f $SGDB_MYSQL ]; then
+                echo -e "\nErro: o arquivo com a lista de sgbds mysql nao existe!"
+                echo -e "Ajuda: ajuste o conteudo da variavel NMDBLIST_MYSQL\n"
+                exit 1
+        fi

@@ -1,0 +1,78 @@
+# aqui vamos configurar em quais bancos o script
+# fara o dump individual, cada banco sera um arquivo
+# acompanhe como voce deve configurar, veja o exemplo baixo
+ 
+# host:usuario:senha:nomeservidor
+
+#drupal05
+192.168.20.36:postgres:#ebc2010#:drupal05
+
+#drupalabrbd01
+192.168.20.34:postgres:ebc2010:drupalabrbd01
+
+#prodoc01
+192.168.20.40:postgres:postgres:prodoc01
+
+#jboss01
+192.168.20.46:postgres:nambi2010:jboss01
+
+#jboos02
+192.168.20.48:postgres:#ebc2010#:jboss02
+
+#sisnevm01
+192.168.20.58:backup:ebc4backup:sisnevm01
+
+#drupal01
+192.168.20.65:postgres:#ebc2010#:drupal01
+
+#drupal03
+192.168.20.69:postgres:#ebc2010#:drupal3
+
+#drupal04
+192.168.20.80:drupal_radioagencia:ebc2010:drupal04
+
+#pronto01
+192.168.20.127:backup:ebc4backup:pronto01
+
+#radioagencia01
+192.168.20.158:postgres:#ebc2010#:radioagencia01
+
+#bacula01
+192.168.20.163:bacula:pgbacula:bacula01
+
+#intranet01
+192.168.20.176:postgres:#ebc2010#:intranet01
+
+#agenciabdvm01
+192.168.20.180:postgres:#ebc2010#:agenciabdvm01
+
+# zabbixbd01
+192.168.20.135:zabbix:#ebc2010#:zabbixbd01
+
+# reporterbd01
+192.168.20.200:reporter:reporter2010:reporterbd01
+
+#puppetbd01
+192.168.21.83:backup:ebc4backup:puppetbd01
+
+##
+## desativados/desligados
+##
+
+#pgsql-drupal02 (desativada)
+#192.168.20.67:postgres:#ebc2010#:pgsql-drupal02
+
+#pgsql01 (maquina desligada)
+#192.168.50.33:postgres:#ebc2010#:pgsql01
+
+#eleicoes01 (projeto encerrado)
+#192.168.20.241:postgres:#ebc2010#:eleicoes01
+
+#pgsql-eleicoes01 (projeto encerrado)
+#192.168.20.128:postgres:#ebc2010#:pgsql-eleicoes01
+
+##zabbix (maquina substituida)
+#192.168.20.134:postgres:#ebc2010#:zabbix
+
+#conceitobd02 (maquina de homologacao)
+#192.168.20.167:postgres:#ebc2010#:conceitobd02

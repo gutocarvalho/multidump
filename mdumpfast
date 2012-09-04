@@ -1,0 +1,178 @@
+#!/bin/bash
+
+### modo de usar ##############################
+
+# ./dumprapido {mysql|pgsql} banco servidor {sql|gzip}
+
+### carregando configuracoes e checagens ######
+
+source mcore
+source mcorecheck
+
+### gera lista recente de bancis ##############
+
+bash mglist
+
+### funcao para dumps rapidos #################
+
+TIPOB="$1"
+BANCO="$2"
+SERVD="$3"
+FORMT="$4"
+
+### tratando quantidade de parametros ############################################################
+
+if [ $# -lt "4" ];then
+	echo "$MINFO: esse comando precisa de pelo menos 4 argumentos"
+	echo "$MINFO: ./dumpfast {mysql|pgsql} banco servidor {sql|gzip}"
+	exit 1
+elif [ $# -gt "4" ];then
+	echo "$MINFO: esse comando so aceita 4 argumentos"
+	exit 1
+fi
+
+### tratando o primeiro argumento ###############################################################
+
+if [ $TIPOB != "mysql" -a $TIPOB != "MYSQL" -a $TIPOB != "pgsql" -a $TIPOB != "PGSQL" ];then
+	echo "$MINFO: O primeiro parametro deve ser mysql ou pgsql"
+	exit 1
+fi
+
+### tratando o segundo argumento ################################################################
+
+if [ $TIPOB == "mysql" ] || [ $TIPOB == "MYSQL" ];then
+	cat $NMDBLIST_MYSQL|grep $BANCO > /dev/null
+	if [ $? != "0" ];then
+		echo "$MINFO: o banco $BANCO nao foi detectado pelo geralistabancos."
+		exit 1
+	fi
+fi
+
+if [ $TIPOB == "pgsql" ] || [ $TIPOB == "PGSQL" ];then
+	cat $NMDBLIST_PGSQL|grep $BANCO > /dev/null
+	if [ $? != "0" ];then
+		echo "$MINFO: o banco $BANCO nao foi detectado pelo geralistabancos."
+		exit 1
+	fi
+fi
+
+### tratando o terceiro argumento ###############################################################
+
+if [ $TIPOB == "mysql" ] || [ $TIPOB == "MYSQL" ];then
+	cat $NMDBLIST_MYSQL|grep $SERVD > /dev/null
+	if [ $? != "0" ];then
+		echo "$MINFO: o servidor $SERVD nao foi detectado pelo geralistabancos."
+		exit 1
+	fi
+fi
+
+if [ $TIPOB == "pgsql" ] || [ $TIPOB == "PGSQL" ];then
+	cat $NMDBLIST_PGSQL|grep $SERVD > /dev/null
+	if [ $? != "0" ];then
+		echo "$MINFO: o servidor $SERVD nao foi detectado pelo geralistabancos."
+		exit 1
+	fi
+fi
+
+### tratando o quarto argumento #################################################################
+
+if [ $FORMT != "sql" -a $FORMT != "sql" -a $FORMT != "GZIP" -a $FORMT != "gzip" ];then
+	echo "$MINFO: O quarto parametro deve ser sql ou gzip"
+	exit 1
+fi
+
+### funcao #########################################################################
+
+function dumprapido()
+{
+	# fazendo dump de banco mysql
+	if [ $TIPOB == "mysql" ] ||[ $TIPOB == "MYSQL" ] ;then
+
+		TFILE=".tmpfile"
+		
+		# limando arquivo temporario
+		if [ -e $TFILE ];then
+                	rm $TFILE
+		fi
+
+		cat $NMDBLIST_MYSQL|grep $BANCO|grep $SERVD > $TFILE
+             
+		HOST=`cat $TFILE | cut -d: -f1`
+                USER=`cat $TFILE | cut -d: -f2`
+                PASS=`cat $TFILE | cut -d: -f3`
+                BASE=`cat $TFILE | cut -d: -f4`
+                NAME=`cat $TFILE | cut -d: -f5`
+
+		# horario do inicio do dump
+		SDUMPDATE=$(date +%Y%m%d.%H%M%S)
+
+		# dumpeando
+		if [ $FORMT == "sql"  ] || [ $FORMT == "SQL"  ];then
+			$MY_DUMP --host=$HOST --user=$USER --password=$PASS $BASE
+		elif [ $FORMT == "gzip"  ];then
+			$MY_DUMP --host=$HOST --user=$USER --password=$PASS $BASE > $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql
+			if [ -e $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql ];then
+				gzip $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql
+                                SIZE=$(du -sk $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql.gz |awk '{ print $1}')
+				echo "$MINFO: o arquivo $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql.gz tem o tamanho de $SIZE Kb."
+			else
+				echo "$MINFO: nao encontrei o arquivo"
+			fi
+		else
+			echo "$MINFO: problemas... chama o guto!"
+			
+		fi
+
+		# limando arquivo temporario
+		if [ -e $TFILE ];then
+                	rm $TFILE
+        	fi
+	fi
+
+	# fazendo dump de banco pgsql
+	if [ $TIPOB == "pgsql" ] ||[ $TIPOB == "PGSQL" ] ;then
+
+		TFILE=".tmpfile"
+		
+		# limando arquivo temporario
+		if [ -e $TFILE ];then
+                	rm $TFILE
+		fi
+
+		cat $NMDBLIST_PGSQL|grep $BANCO|grep $SERVD > $TFILE
+             
+		HOST=`cat $TFILE | cut -d: -f1`
+                USER=`cat $TFILE | cut -d: -f2`
+                PASS=`cat $TFILE | cut -d: -f3`
+                BASE=`cat $TFILE | cut -d: -f4`
+                NAME=`cat $TFILE | cut -d: -f5`
+
+		export PGPASSWORD=$PASS
+		
+		SDUMPDATE=$(date +%Y%m%d.%H%M%S)
+
+		# dumpeando
+		if [ $FORMT == "sql"  ] || [ $FORMT == "SQL"  ];then
+			$PG_DUMP --username=$USER -h $HOST $BASE
+		elif [ $FORMT == "gzip"  ];then
+			$PG_DUMP --username=$USER -h $HOST $BASE  > $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql
+			if [ -e $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql ];then
+				gzip $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql
+                                SIZE=$(du -sk $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql.gz |awk '{ print $1}')
+				echo "$MINFO: o arquivo $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql.gz tem o tamanho de $SIZE Kb."
+			else
+				echo "$MINFO: nao encontrei o arquivo"
+			fi
+		else
+			echo "$MINFO: problemas... chama o guto!"
+			
+		fi
+		
+		# limando arquivo temporario
+		if [ -e $TFILE ];then
+                	rm $TFILE
+        	fi
+	fi
+}
+
+dumprapido

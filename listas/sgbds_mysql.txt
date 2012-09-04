@@ -1,0 +1,51 @@
+# aqui vamos configurar em quais bancos o script
+# fara o dump individual, cada banco sera um arquivo
+# acompanhe como voce deve configurar, veja o exemplo baixo
+ 
+# host:usuario:senha:nomedoservidor
+
+# otrs
+192.168.20.12:root:#ebc2010#:otrs01
+
+# splvmbd01
+192.168.20.18:root:#ebc2010#:splvmbd01
+
+# bd02
+192.168.20.30:dump:#ebc2010#:bd02
+
+# puppet-dashboard
+192.168.20.39:dumps:ebc4backup:puppet-dashboard
+
+# mysqlreport
+192.168.20.82:root:#ebc2010#:mysqlreport
+
+# muwp01
+192.168.20.107:root:#ebc2010#:muwp01
+
+# cacti01
+192.168.20.129:root:#ebc2010#:cacti01
+
+# totvs03
+192.168.20.137:bacula:ebc2011:totvs03
+
+# totvs01
+192.168.20.138:bacula:ebc2011:totvs01
+
+# radioagencia
+192.168.20.158:clipping:2001:radioagencia
+
+# wpmu
+192.168.20.159:root:#ebc2010#:wpmu
+
+# iacervo01
+192.168.20.211:root:ebcdesenv2010:iacervo01
+
+# ocs
+192.168.20.216:root:ebc2010:ocs
+
+##
+## desativadas/desligadas
+##
+
+# blogbd01, projeto entrevistas (projeto encerrado)
+#192.168.20.248:root:#ebc2010#:blogbd01

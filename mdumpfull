@@ -1,0 +1,210 @@
+#!/bin/bash
+
+### carregando confs/var/constantes #################
+
+source mcore
+source mcorecheck
+
+### gerando lista atualizada de bancos ##############
+
+bash mglist
+
+### funcoes ########################################
+
+
+function pgstats()
+{
+	echo "$MINFO:[PGSQL_STATS]: Extraindo informacoes do sistema" |tee -a $LN
+
+	# calculando espaço em disco usado pelos dumps
+	DUMPSTOTALDISKSIZE=$(du -ch $BK/pgsql*|grep total|awk '{ print $1 }')
+	echo "$MINFO:[PGSQL_STATS]: os dumps pgsql ocupam $DUMPSTOTALDISKSIZE". |tee -a $LN
+
+	# calculando numero total de arquivos de dump
+	DUMPSTOTALFILES=$(ls $BK/pgsql*|wc -l)
+	echo "$MINFO:[PGSQL_STATS]: temos $DUMPSTOTALFILES arquivos de dumps pgsql" |tee -a $LN
+
+}
+
+function mystats()
+{
+	echo "$MINFO:[MYSQL_STATS]: Extraindo informacoes do sistema" |tee -a $LN
+
+	# calculando espaço em disco usado pelos dumps
+	DUMPSTOTALDISKSIZE=$(du -ch $BK/mysql*|grep total|awk '{ print $1 }')
+	echo "$MINFO:[MYSQL_STATS]: os dumps pgsql ocupam $DUMPSTOTALDISKSIZE". |tee -a $LN
+
+	# calculando numero total de arquivos de dump
+	DUMPSTOTALFILES=$(ls $BK/mysql*|wc -l)
+	echo "$MINFO:[MYSQL_STATS]: temos $DUMPSTOTALFILES arquivos de dumps pgsql" |tee -a $LN
+
+
+}
+
+function report_error()
+{
+	# verificando se houve algum erro
+	cat $ERROS|grep -v ERRORLOG|egrep -v '^$' > /dev/null
+	if [ $? == "0" ];then
+	        echo -e "\n$MINFO:[REPORTS]:foram detectados erros, iniciando procedimentos de alerta.\n"
+                # enviando relatorio de erro
+                if [ $SEND_ERROR_MAIL == "YES" ];then
+	                echo -e "$MINFO:[REPORTS]: enviando relatorio do erros para $ERROR_MAIL ...\n" |tee -a $LN
+        	        mail -s "$MINFO:[REPORTS]:[ERROS] relatorio de erros nos dumps mysql e pgsql" $ERROR_MAIL < $ERROS
+                fi
+        fi
+}
+
+function report_info()
+{
+        # relatorio do dump
+        if [ $SEND_REPORT_MAIL == "YES" ];then
+                echo -e "$MINFO:[REPORTS]: enviando relatorio com informacoes para $REPORT_MAIL ...\n" |tee -a $LN
+                $MAILX -s "$MINFO:[REPORTS]:[INFO] relatorio de dumps mysql e pgsql" $REPORT_MAIL < $LN
+        fi
+	
+
+}
+
+function dumpcompleto_mysql()
+
+{
+	for DB in `cat $NMDBLIST_MYSQL |grep -v ^#|grep -v ^$`;do
+               	HOST=`echo $DB | cut -d: -f1`
+	        USER=`echo $DB | cut -d: -f2`
+                PASS=`echo $DB | cut -d: -f3`
+                BASE=`echo $DB | cut -d: -f4`
+                NAME=`echo $DB | cut -d: -f5`
+
+		# gravando informacoes em logs de erro
+
+		echo -e "\n$MINFO:[ERRORLOG]: procedimento de dump [MYSQL] iniciado em $(date +%Y%m%d.%H%M%S)" >> $ERROS
+		echo -e "$MINFO:[ERRORLOG]: servidor $NAME , banco $BASE, ip $HOST" >> $ERROS
+		
+		# gravando informacoes em logs de info
+
+		echo -e "\n$MINFO: procedimento iniciado em $(date +%Y%m%d.%H%M%S)" |tee -a $LN
+		echo "$MINFO: iniciando dump [MYSQL] no servidor <$NAME>" |tee -a $LN
+		echo "$MINFO: banco <$BASE>" |tee -a $LN
+		echo "$MINFO: ip <$HOST>" |tee -a $LN
+
+		# criando data referencia
+                
+		SDUMPDATE=$(date +%Y%m%d.%H%M%S)
+
+		# dumpeando banco
+
+		$MY_DUMP --host="$HOST" --user="$USER" --password="$PASS" $BASE 2>> $ERROS > $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql
+
+		# compactando banco
+
+		if [ -e $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql ];then
+			gzip $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql 2>> $ERROS
+			SIZE=$(du -sk $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql.gz |awk '{ print $1}')
+			echo "$MINFO: o arquivo $BK/mysql.$NAME.$BASE.$SDUMPDATE.sql.gz tem o tamanho de $SIZE Kb." |tee -a $LN
+
+			# verificando tamanho minimo do dump
+			if [ $SIZE -lt 20 ];then
+				echo "$MINFO:[ALERTA]: o dump do banco $BASE gerou um arquivo tem valor inferior a 20 KB, favor verificar." |tee -a $LN $ERROS
+			fi
+
+		else
+			echo "$MINFO:[ALERTA]: ops, o dumo do banco $BASE nao gerou nenhum arquivo, por favor verifique." |tee -a $LN $ERROS
+		fi
+	
+		# finalizando procedimento
+		
+		echo -e "$MINFO: procedimento encerrado em $(date +%Y%m%d.%H%M%S)\n" |tee -a $LN
+		echo -e "$MINFO:[ERRORLOG]: procedimento encerrado em $(date +%Y%m%d.%H%M%S)\n" >> $ERROS
+	done
+		
+	# gerando estatisticas
+
+	mystats
+
+}
+
+function dumpcompleto_pgsql()
+{
+	for DB in `cat $NMDBLIST_PGSQL |grep -v ^#|grep -v ^$`;do
+               	HOST=`echo $DB | cut -d: -f1`
+	        USER=`echo $DB | cut -d: -f2`
+                PASS=`echo $DB | cut -d: -f3`
+                BASE=`echo $DB | cut -d: -f4`
+                NAME=`echo $DB | cut -d: -f5`
+
+		# gravando infonnrmacoes em logs de erro
+
+		echo -e "\n$MINFO:[ERRORLOG]: procedimento de dump [PGSQL] iniciado em $(date +%Y%m%d.%H%M%S)" >> $ERROS
+		echo -e "$MINFO:[ERRORLOG]: servidor $NAME , banco $BASE, ip $HOST" >> $ERROS
+		
+		# gravando informacoes em logs de info
+
+		echo -e "\n$MINFO: procedimento iniciado em $(date +%Y%m%d.%H%M%S)" |tee -a $LN
+		echo "$MINFO: iniciando dump [PGSQL] no servidor <$NAME>" |tee -a $LN
+		echo "$MINFO: banco <$BASE>" |tee -a $LN
+		echo "$MINFO: ip <$HOST>" |tee -a $LN
+
+		# criando data referencia		
+
+		SDUMPDATE=$(date +%Y%m%d.%H%M%S)
+
+		# exportando senha
+
+		export PGPASSWORD=$PASS
+
+		# dumpeando
+
+                $PG_DUMP --username=$USER -h $HOST $BASE 2>> $ERROS > $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql
+
+		# compactando banco
+
+		if [ -e $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql ];then
+			gzip $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql 2>> $ERROS
+			SIZE=$(du -sk $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql.gz |awk '{ print $1}')
+			echo "$MINFO: o arquivo $BK/pgsql.$NAME.$BASE.$SDUMPDATE.sql.gz tem o tamanho de $SIZE Kb." |tee -a $LN
+
+			# verificando tamanho minimo do dump
+			if [ $SIZE -lt 20 ];then
+				echo "$MINFO:[ALERTA]: o dump do banco $BASE gerou um arquivo tem valor inferior a 20 KB, favor verificar." |tee -a $LN $ERROS
+			fi
+
+		else
+			echo "$MINFO:[ALERTA]: ops, o dump do banco $BASE nao gerou nenhum arquivo, por favor verifique." |tee -a $LN $ERROS
+		fi
+
+
+		# finalizando procedimento
+		
+		echo -e "$MINFO: procedimento encerrado em $(date +%Y%m%d.%H%M%S)\n" |tee -a $LN
+		echo -e "$MINFO:[ERRORLOG]: procedimento encerrado em $(date +%Y%m%d.%H%M%S)\n" >> $ERROS
+	done
+		
+	# gerando estatisticas
+
+	pgstats
+
+}
+
+
+function dumpcompleto()
+{
+        # mysql
+
+        if [ $MYDUMPS == "YES" ];then
+                dumpcompleto_mysql
+        fi
+
+        # pgsql
+
+        if [ $PGDUMPS == "YES" ];then
+                dumpcompleto_pgsql
+        fi
+
+	# enviando relatorios
+
+	report_error
+	report_info
+}
+
+dumpcompleto
